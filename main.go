@@ -7,7 +7,6 @@ import (
 	"github.com/astaxie/beego"
 	"io/ioutil"
 	"net/http"
-	"unsafe"
 )
 
 var (
@@ -15,7 +14,7 @@ var (
 	url   string = "https://oapi.dingtalk.com/robot/send?access_token=" + token
 )
 
-type RequestRebot struct {
+type RebotRequest struct {
 	MsgType string `json:"msgtype"`
 	Text    struct {
 		Content string `json:"content"`
@@ -26,8 +25,13 @@ type RequestRebot struct {
 	} `json:"at"`
 }
 
+type RebotResponse struct {
+	ErrMsg  string `json:"errmsg"`  //响应消息
+	Errcode int    `json:"errcode"` //响应状态码
+}
+
 func main() {
-	req := new(RequestRebot)
+	req := new(RebotRequest)
 	req.MsgType = "text"
 	req.Text.Content = "哈哈哈哈哈哈哈"
 	req.At.AtMobiles = []string{""}
@@ -59,6 +63,18 @@ func main() {
 		return
 	}
 	//byte数组直接转成string，优化内存
-	str := (*string)(unsafe.Pointer(&respBytes))
-	fmt.Println(*str)
+	/* 	str := (*string)(unsafe.Pointer(&respBytes))
+	   	fmt.Println(*str) */
+
+	var reResp RebotResponse
+	err = json.Unmarshal(respBytes, &reResp)
+	if err != nil {
+		beego.Error("解析错误", err)
+		return
+	}
+	if reResp.Errcode == 0 && reResp.ErrMsg == "ok" {
+		beego.Info("消息发送成功")
+	} else {
+		beego.Error("消息发送错误", err)
+	}
 }
